@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
-import { View, Text, StyleSheet, Animated } from 'react-native';
+import { useEffect } from "react";
+import { View, Text, StyleSheet, Animated } from "react-native";
 
 export default function SplashScreen({ navigation }) {
   const opacidad = new Animated.Value(0);
@@ -20,7 +20,6 @@ export default function SplashScreen({ navigation }) {
     ]).start();
 
     const timer = setTimeout(() => {
-      navigation.replace('Login');
     }, 3000);
 
     return () => clearTimeout(timer);
@@ -28,10 +27,17 @@ export default function SplashScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <Animated.View style={[styles.contenido, { opacity: opacidad, transform: [{ scale: escala }] }]}>
+      <Animated.View
+        style={[
+          styles.contenido,
+          { opacity: opacidad, transform: [{ scale: escala }] },
+        ]}
+      >
         <Text style={styles.icono}>🏗️</Text>
         <Text style={styles.titulo}>Mi Obra Digital</Text>
-        <Text style={styles.subtitulo}>Gestión de proyectos de construcción</Text>
+        <Text style={styles.subtitulo}>
+          Gestión de proyectos de construcción
+        </Text>
       </Animated.View>
 
       <Animated.View style={[styles.footer, { opacity: opacidad }]}>
@@ -47,14 +53,30 @@ export default function SplashScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container:   { flex: 1, backgroundColor: '#111827', justifyContent: 'center', alignItems: 'center' },
-  contenido:   { alignItems: 'center' },
-  icono:       { fontSize: 80, marginBottom: 20 },
-  titulo:      { fontSize: 32, fontWeight: 'bold', color: '#fff', marginBottom: 10 },
-  subtitulo:   { fontSize: 15, color: '#9CA3AF', textAlign: 'center', paddingHorizontal: 40 },
-  footer:      { position: 'absolute', bottom: 60, alignItems: 'center' },
-  puntos:      { flexDirection: 'row', marginBottom: 12 },
-  punto:       { width: 8, height: 8, borderRadius: 4, backgroundColor: '#374151', marginHorizontal: 4 },
-  puntoActivo: { backgroundColor: '#F97316', width: 24 },
-  footerTexto: { color: '#6B7280', fontSize: 13 },
+  container: {
+    flex: 1,
+    backgroundColor: "#111827",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  contenido: { alignItems: "center" },
+  icono: { fontSize: 80, marginBottom: 20 },
+  titulo: { fontSize: 32, fontWeight: "bold", color: "#fff", marginBottom: 10 },
+  subtitulo: {
+    fontSize: 15,
+    color: "#9CA3AF",
+    textAlign: "center",
+    paddingHorizontal: 40,
+  },
+  footer: { position: "absolute", bottom: 60, alignItems: "center" },
+  puntos: { flexDirection: "row", marginBottom: 12 },
+  punto: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#374151",
+    marginHorizontal: 4,
+  },
+  puntoActivo: { backgroundColor: "#F97316", width: 24 },
+  footerTexto: { color: "#6B7280", fontSize: 13 },
 });
