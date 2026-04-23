@@ -1,5 +1,7 @@
+// src/screens/SplashScreen.js
 import { useEffect } from "react";
 import { View, Text, StyleSheet, Animated } from "react-native";
+import { colors } from "../config/theme";
 
 export default function SplashScreen({ navigation }) {
   const opacidad = new Animated.Value(0);
@@ -19,22 +21,22 @@ export default function SplashScreen({ navigation }) {
       }),
     ]).start();
 
-    const timer = setTimeout(() => {
-    }, 3000);
-
+    const timer = setTimeout(() => {}, 3000);
     return () => clearTimeout(timer);
   }, []);
 
   return (
     <View style={styles.container}>
+      <View style={styles.topAccent} />
+
       <Animated.View
-        style={[
-          styles.contenido,
-          { opacity: opacidad, transform: [{ scale: escala }] },
-        ]}
+        style={[styles.contenido, { opacity: opacidad, transform: [{ scale: escala }] }]}
       >
-        <Text style={styles.icono}>🏗️</Text>
+        <View style={styles.iconContainer}>
+          <Text style={styles.icono}>🏗️</Text>
+        </View>
         <Text style={styles.titulo}>Mi Obra Digital</Text>
+        <View style={styles.divider} />
         <Text style={styles.subtitulo}>
           Gestión de proyectos de construcción
         </Text>
@@ -55,28 +57,57 @@ export default function SplashScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#111827",
-    justifyContent: "center",
-    alignItems: "center",
+    backgroundColor: '#1E1E1E',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  contenido: { alignItems: "center" },
-  icono: { fontSize: 80, marginBottom: 20 },
-  titulo: { fontSize: 32, fontWeight: "bold", color: "#fff", marginBottom: 10 },
+  topAccent: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0,
+    height: 4,
+    backgroundColor: '#F5A623',
+  },
+  contenido: { alignItems: 'center' },
+  iconContainer: {
+    width: 100,
+    height: 100,
+    borderRadius: 12,
+    backgroundColor: '#2A2A2A',
+    borderWidth: 1,
+    borderColor: '#F5A623',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  icono: { fontSize: 52 },
+  titulo: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    letterSpacing: 0.5,
+    marginBottom: 12,
+  },
+  divider: {
+    width: 48,
+    height: 3,
+    backgroundColor: '#F5A623',
+    borderRadius: 2,
+    marginBottom: 12,
+  },
   subtitulo: {
-    fontSize: 15,
-    color: "#9CA3AF",
-    textAlign: "center",
+    fontSize: 14,
+    color: '#B0B0B0',
+    textAlign: 'center',
     paddingHorizontal: 40,
+    letterSpacing: 0.3,
   },
-  footer: { position: "absolute", bottom: 60, alignItems: "center" },
-  puntos: { flexDirection: "row", marginBottom: 12 },
+  footer: { position: 'absolute', bottom: 60, alignItems: 'center' },
+  puntos: { flexDirection: 'row', marginBottom: 12 },
   punto: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: "#374151",
+    width: 8, height: 8, borderRadius: 4,
+    backgroundColor: '#3A3A3A',
     marginHorizontal: 4,
   },
-  puntoActivo: { backgroundColor: "#F97316", width: 24 },
-  footerTexto: { color: "#6B7280", fontSize: 13 },
+  puntoActivo: { backgroundColor: '#F5A623', width: 24, borderRadius: 4 },
+  footerTexto: { color: '#808080', fontSize: 12, letterSpacing: 1, textTransform: 'uppercase' },
 });
