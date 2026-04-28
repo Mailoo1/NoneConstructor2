@@ -1,233 +1,278 @@
-// src/screens/DashboardScreen.js
-import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { useState, useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Animated, Modal, FlatList } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useNavigation } from '@react-navigation/native';
+import { signOut } from 'firebase/auth';
+import { doc, getDoc, collection, getDocs, query, where } from 'firebase/firestore';
+import { auth, db } from '../config/firebase';
+import { colors } from '../config/theme';
 
-const cards = [
-  { label: 'Objetivos',  icon: 'flag',      valor: '4/6',   color: '#2E86AB', badge: 'info' },
-  { label: 'Avances',    icon: 'clipboard', valor: '3 hoy', color: '#4CAF50', badge: 'success' },
-  { label: 'Materiales', icon: 'cube',      valor: '12',    color: '#FF9500', badge: 'pending' },
-  { label: 'Personal',   icon: 'people',    valor: '8',     color: '#F5A623', badge: null },
-  { label: 'Planos',     icon: 'map',       valor: '5',     color: '#6B6B6B', badge: null },
-  { label: 'Fotos',      icon: 'camera',    valor: '24',    color: '#E4572E', badge: null },
+const modulos = [
+  { label: 'Materiales', icon: 'cube-outline',     color: colors.primary, screen: 'Materiales' },
+  { label: 'Personal',   icon: 'people-outline',   color: colors.primary, screen: 'Personal'   },
+  { label: 'Tareas',     icon: 'checkbox-outline', color: colors.primary, screen: 'Tareas'     },
+  { label: 'Planos',     icon: 'map-outline',      color: colors.primary, screen: 'Planos'     },
 ];
 
-export default function DashboardScreen() {
-  const navigation = useNavigation();
-  const [usuario, setUsuario] = useState(null);
+export default function DashboardScreen({ navigation }) {
+  const [usuario,    setUsuario]    = useState(null);
+  const [obras,      setObras]      = useState([]);
+  const [obraActiva, setObraActiva] = useState(null);
+  const [menuOpen,   setMenuOpen]   = useState(false);
+  const [obraModal,  setObraModal]  = useState(false);
+  const slideAnim = useRef(new Animated.Value(-300)).current;
 
   useEffect(() => {
-    const cargarUsuario = async () => {
-      const sesion = await AsyncStorage.getItem('sesion');
-      if (sesion) setUsuario(JSON.parse(sesion));
-    };
     cargarUsuario();
+    cargarObras();
   }, []);
 
-  const cerrarSesion = async () => {
-    Alert.alert(
-      'Cerrar sesión',
-      '¿Estás seguro que quieres salir?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Salir',
-          style: 'destructive',
-          onPress: async () => {
-            await AsyncStorage.removeItem('sesion');
-            navigation.replace('Login');
-          },
-        },
-      ]
-    );
+  useEffect(() => {
+    Animated.timing(slideAnim, {
+      toValue: menuOpen ? 0 : -300,
+      duration: 280,
+      useNativeDriver: true,
+    }).start();
+  }, [menuOpen]);
+
+  const cargarUsuario = async () => {
+    try {
+      const uid  = auth.currentUser?.uid;
+      if (!uid) return;
+      const snap = await getDoc(doc(db, 'usuarios', uid));
+      if (snap.exists()) setUsuario(snap.data());
+    } catch (e) { console.log(e); }
+  };
+
+  const cargarObras = async () => {
+    try {
+      const uid   = auth.currentUser?.uid;
+      const q     = query(collection(db, 'obras'), where('uid', '==', uid));
+      const snap  = await getDocs(q);
+      const lista = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      setObras(lista);
+      if (lista.length > 0 && !obraActiva) setObraActiva(lista[0]);
+    } catch (e) { console.log(e); }
+  };
+
+  const cerrarSesion = () => {
+    Alert.alert('Cerrar sesión', '¿Estás seguro?', [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Salir', style: 'destructive', onPress: () => signOut(auth) },
+    ]);
   };
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <Text style={styles.titulo}>Mi Obra Digital</Text>
-          <Text style={styles.subtitulo}>
-            Hola, {usuario ? usuario.nombre : 'bienvenido'} 👷
-          </Text>
+    <View style={{ flex: 1 }}>
+
+      {/* Overlay del menú */}
+      {menuOpen && (
+        <TouchableOpacity style={s.overlay} onPress={() => setMenuOpen(false)} activeOpacity={1} />
+      )}
+
+      {/* Menú lateral hamburguesa */}
+      <Animated.View style={[s.menuLateral, { transform: [{ translateX: slideAnim }] }]}>
+        {/* Perfil en el menú */}
+        <View style={s.menuPerfil}>
+          <View style={s.menuAvatar}>
+            <Text style={s.menuAvatarText}>
+              {usuario?.nombre ? usuario.nombre[0].toUpperCase() : '?'}
+            </Text>
+          </View>
+          <Text style={s.menuNombre}>{usuario?.nombre ?? 'Usuario'}</Text>
+          <Text style={s.menuEmail}>{usuario?.email ?? ''}</Text>
         </View>
-        <TouchableOpacity style={styles.btnSalir} onPress={cerrarSesion} activeOpacity={0.7}>
-          <Ionicons name="log-out-outline" size={20} color="#FF3B30" />
+
+        <View style={s.menuDivider} />
+
+        {/* Obras en el menú */}
+        <TouchableOpacity style={s.menuItem} onPress={() => { setMenuOpen(false); setObraModal(true); }}>
+          <Ionicons name="business-outline" size={20} color={colors.primary} />
+          <View style={{ flex: 1 }}>
+            <Text style={s.menuItemText}>Mis obras</Text>
+            <Text style={s.menuItemSub}>{obraActiva?.nombre ?? 'Sin obra seleccionada'}</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
         </TouchableOpacity>
-      </View>
 
-      {/* Banner de estado */}
-      <View style={styles.banner}>
-        <View style={styles.bannerIndicator} />
-        <View>
-          <Text style={styles.bannerTitulo}>Proyecto activo</Text>
-          <Text style={styles.bannerSub}>Torre Residencial Norte · En proceso</Text>
-        </View>
-        <View style={styles.bannerBadge}>
-          <Text style={styles.bannerBadgeText}>🟠 Activo</Text>
-        </View>
-      </View>
+        <TouchableOpacity style={s.menuItem} onPress={() => { setMenuOpen(false); navigation.navigate('Obras'); }}>
+          <Ionicons name="add-circle-outline" size={20} color={colors.success} />
+          <Text style={s.menuItemText}>Agregar obra</Text>
+        </TouchableOpacity>
 
-      {/* Separador con label */}
-      <View style={styles.seccionHeader}>
-        <Text style={styles.seccionTitulo}>Módulos</Text>
-        <View style={styles.seccionLine} />
-      </View>
+        <TouchableOpacity style={s.menuItem} onPress={() => { setMenuOpen(false); navigation.navigate('Perfil'); }}>
+          <Ionicons name="person-outline" size={20} color={colors.info} />
+          <Text style={s.menuItemText}>Mi perfil</Text>
+        </TouchableOpacity>
 
-      {/* Grid de cards */}
-      <View style={styles.grid}>
-        {cards.map((card) => (
-          <TouchableOpacity key={card.label} style={styles.card} activeOpacity={0.75}>
-            <View style={[styles.iconBox, { backgroundColor: card.color + '22', borderColor: card.color + '44' }]}>
-              <Ionicons name={card.icon} size={24} color={card.color} />
+        <View style={s.menuDivider} />
+
+        <TouchableOpacity style={s.menuItem} onPress={() => { setMenuOpen(false); cerrarSesion(); }}>
+          <Ionicons name="log-out-outline" size={20} color={colors.danger} />
+          <Text style={[s.menuItemText, { color: colors.danger }]}>Cerrar sesión</Text>
+        </TouchableOpacity>
+      </Animated.View>
+
+      {/* Modal selector de obras */}
+      <Modal visible={obraModal} transparent animationType="slide">
+        <View style={s.modalOverlay}>
+          <View style={s.modalBox}>
+            <View style={s.modalHeader}>
+              <Text style={s.modalTitulo}>Seleccionar obra</Text>
+              <TouchableOpacity onPress={() => setObraModal(false)}>
+                <Ionicons name="close" size={24} color={colors.textSecondary} />
+              </TouchableOpacity>
             </View>
-            <Text style={styles.cardValor}>{card.valor}</Text>
-            <Text style={styles.cardLabel}>{card.label}</Text>
+            {obras.length === 0 ? (
+              <View style={s.sinObras}>
+                <Ionicons name="business-outline" size={40} color={colors.textMuted} />
+                <Text style={s.sinObrasText}>No tienes obras registradas</Text>
+                <TouchableOpacity style={s.btnAgregarObra} onPress={() => { setObraModal(false); navigation.navigate('Obras'); }}>
+                  <Text style={s.btnAgregarObraText}>Agregar obra</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <FlatList
+                data={obras}
+                keyExtractor={i => i.id}
+                renderItem={({ item }) => (
+                  <TouchableOpacity style={[s.obraItem, obraActiva?.id === item.id && s.obraItemActiva]}
+                    onPress={() => { setObraActiva(item); setObraModal(false); }}>
+                    <Ionicons name="business-outline" size={22}
+                      color={obraActiva?.id === item.id ? colors.primary : colors.textSecondary} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={[s.obraItemNombre, obraActiva?.id === item.id && { color: colors.primary }]}>
+                        {item.nombre}
+                      </Text>
+                      {item.ubicacion ? <Text style={s.obraItemSub}>{item.ubicacion}</Text> : null}
+                    </View>
+                    {obraActiva?.id === item.id && (
+                      <Ionicons name="checkmark-circle" size={20} color={colors.primary} />
+                    )}
+                  </TouchableOpacity>
+                )}
+                ItemSeparatorComponent={() => <View style={{ height: 1, backgroundColor: colors.border }} />}
+              />
+            )}
+          </View>
+        </View>
+      </Modal>
+
+      {/* Contenido principal */}
+      <ScrollView style={s.container} showsVerticalScrollIndicator={false}>
+
+        {/* Header */}
+        <View style={s.header}>
+          <TouchableOpacity style={s.btnMenu} onPress={() => setMenuOpen(true)}>
+            <Ionicons name="menu" size={26} color={colors.textPrimary} />
           </TouchableOpacity>
-        ))}
-      </View>
+          <View style={{ flex: 1, marginLeft: 12 }}>
+            <Text style={s.titulo}>Control Obra 🏗️</Text>
+            <Text style={s.subtitulo}>Hola, {usuario?.nombre ?? 'Bienvenido'} 👷</Text>
+          </View>
+        </View>
 
-      {/* Acciones rápidas */}
-      <View style={styles.seccionHeader}>
-        <Text style={styles.seccionTitulo}>Acciones rápidas</Text>
-        <View style={styles.seccionLine} />
-      </View>
-
-      <View style={styles.accionesRow}>
-        <TouchableOpacity style={[styles.accion, styles.accionPrimary]} activeOpacity={0.8}>
-          <Ionicons name="add-circle-outline" size={18} color="#1E1E1E" />
-          <Text style={styles.accionTextPrimary}>Nuevo avance</Text>
+        {/* Obra activa */}
+        <TouchableOpacity style={s.obraSelector} onPress={() => setObraModal(true)} activeOpacity={0.8}>
+          <View style={s.obraBar} />
+          <View style={{ flex: 1 }}>
+            <Text style={s.obraTitulo}>OBRA ACTIVA</Text>
+            <Text style={s.obraNombre}>
+              {obraActiva ? obraActiva.nombre : 'Toca para seleccionar obra'}
+            </Text>
+            {obraActiva?.ubicacion ? (
+              <View style={s.ubicRow}>
+                <Ionicons name="location-outline" size={11} color={colors.textMuted} />
+                <Text style={s.ubicText}>{obraActiva.ubicacion}</Text>
+              </View>
+            ) : null}
+          </View>
+          <Ionicons name="swap-horizontal-outline" size={20} color={colors.primary} />
         </TouchableOpacity>
-        <TouchableOpacity style={[styles.accion, styles.accionSecondary]} activeOpacity={0.8}>
-          <Ionicons name="camera-outline" size={18} color="#F5A623" />
-          <Text style={styles.accionTextSecondary}>Agregar foto</Text>
-        </TouchableOpacity>
-      </View>
 
-      <View style={{ height: 24 }} />
-    </ScrollView>
+        {/* Grid módulos */}
+        <View style={s.seccion}>
+          <Text style={s.seccionLabel}>MÓDULOS</Text>
+          <View style={s.linea} />
+        </View>
+        <View style={s.grid}>
+          {modulos.map((m) => (
+            <TouchableOpacity key={m.label} style={s.card} activeOpacity={0.75}
+              onPress={() => navigation.navigate(m.screen)}>
+              <View style={[s.iconBox, { backgroundColor: m.color + '22', borderColor: m.color + '55' }]}>
+                <Ionicons name={m.icon} size={26} color={m.color} />
+              </View>
+              <Text style={s.cardLabel}>{m.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Acciones rápidas */}
+        <View style={s.seccion}>
+          <Text style={s.seccionLabel}>ACCIONES RÁPIDAS</Text>
+          <View style={s.linea} />
+        </View>
+        <View style={s.acciones}>
+          <TouchableOpacity style={s.accionPrimary} onPress={() => navigation.navigate('Tareas')} activeOpacity={0.8}>
+            <Ionicons name="add-circle-outline" size={18} color={colors.textDark} />
+            <Text style={s.accionTextP}>Nueva tarea</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={s.accionSecondary} onPress={() => navigation.navigate('Personal')} activeOpacity={0.8}>
+            <Ionicons name="people-outline" size={18} color={colors.primary} />
+            <Text style={s.accionTextS}>Personal</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={{ height: 30 }} />
+      </ScrollView>
+    </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#1E1E1E', paddingHorizontal: 16 },
-
-  // Header
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 12,
-    marginBottom: 16,
-  },
-  headerLeft: {},
-  titulo: { fontSize: 20, fontWeight: 'bold', color: '#FFFFFF' },
-  subtitulo: { fontSize: 13, color: '#B0B0B0', marginTop: 2 },
-  btnSalir: {
-    backgroundColor: '#2A2A2A',
-    padding: 10,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#3A3A3A',
-  },
-
-  // Banner
-  banner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#2A2A2A',
-    borderRadius: 10,
-    padding: 14,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: '#3A3A3A',
-    gap: 10,
-  },
-  bannerIndicator: {
-    width: 3,
-    height: 36,
-    borderRadius: 2,
-    backgroundColor: '#FF9500',
-  },
-  bannerTitulo: { fontSize: 14, fontWeight: '600', color: '#FFFFFF' },
-  bannerSub: { fontSize: 12, color: '#B0B0B0', marginTop: 2 },
-  bannerBadge: {
-    marginLeft: 'auto',
-    backgroundColor: '#FF950022',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#FF950055',
-  },
-  bannerBadgeText: { fontSize: 11, color: '#FF9500', fontWeight: '600' },
-
-  // Sección
-  seccionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-    gap: 8,
-  },
-  seccionTitulo: { fontSize: 12, color: '#6B6B6B', letterSpacing: 1, textTransform: 'uppercase', fontWeight: '600' },
-  seccionLine: { flex: 1, height: 1, backgroundColor: '#3A3A3A' },
-
-  // Grid
-  grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginBottom: 20 },
-  card: {
-    width: '47%',
-    backgroundColor: '#2A2A2A',
-    borderRadius: 10,
-    padding: 16,
-    marginBottom: 12,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#3A3A3A',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  iconBox: {
-    width: 48,
-    height: 48,
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 10,
-    borderWidth: 1,
-  },
-  cardValor: { fontSize: 20, fontWeight: 'bold', color: '#FFFFFF' },
-  cardLabel: { fontSize: 12, color: '#B0B0B0', marginTop: 2, letterSpacing: 0.3 },
-
-  // Acciones rápidas
-  accionesRow: { flexDirection: 'row', gap: 10, marginBottom: 8 },
-  accion: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    borderRadius: 8,
-    padding: 14,
-  },
-  accionPrimary: {
-    backgroundColor: '#F5A623',
-    shadowColor: '#F5A623',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 5,
-  },
-  accionSecondary: {
-    backgroundColor: '#2A2A2A',
-    borderWidth: 1,
-    borderColor: '#F5A623',
-  },
-  accionTextPrimary: { color: '#1E1E1E', fontWeight: 'bold', fontSize: 14 },
-  accionTextSecondary: { color: '#F5A623', fontWeight: '600', fontSize: 14 },
+const s = StyleSheet.create({
+  container:       { flex: 1, backgroundColor: colors.bgPrimary, paddingHorizontal: 16 },
+  overlay:         { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#00000066', zIndex: 50 },
+  menuLateral:     { position: 'absolute', top: 0, left: 0, bottom: 0, width: 280, backgroundColor: colors.bgCard, zIndex: 100, borderRightWidth: 1, borderRightColor: colors.border, paddingTop: 60, paddingHorizontal: 0, elevation: 20 },
+  menuPerfil:      { alignItems: 'center', paddingVertical: 20, paddingHorizontal: 20 },
+  menuAvatar:      { width: 72, height: 72, borderRadius: 36, backgroundColor: colors.primary + '33', borderWidth: 2, borderColor: colors.primary, justifyContent: 'center', alignItems: 'center', marginBottom: 10 },
+  menuAvatarText:  { fontSize: 30, fontWeight: 'bold', color: colors.primary },
+  menuNombre:      { fontSize: 16, fontWeight: 'bold', color: colors.textPrimary },
+  menuEmail:       { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
+  menuDivider:     { height: 1, backgroundColor: colors.border, marginVertical: 8 },
+  menuItem:        { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 20, paddingVertical: 14 },
+  menuItemText:    { flex: 1, fontSize: 15, color: colors.textPrimary, fontWeight: '500' },
+  menuItemSub:     { fontSize: 11, color: colors.textMuted, marginTop: 2 },
+  modalOverlay:    { flex: 1, backgroundColor: '#00000088', justifyContent: 'flex-end' },
+  modalBox:        { backgroundColor: colors.bgCard, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 24, maxHeight: '70%', borderWidth: 1, borderColor: colors.border },
+  modalHeader:     { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
+  modalTitulo:     { fontSize: 18, fontWeight: 'bold', color: colors.textPrimary },
+  sinObras:        { alignItems: 'center', paddingVertical: 30, gap: 10 },
+  sinObrasText:    { fontSize: 15, color: colors.textSecondary },
+  btnAgregarObra:  { backgroundColor: colors.primary, borderRadius: 8, paddingHorizontal: 20, paddingVertical: 10, marginTop: 8 },
+  btnAgregarObraText: { color: colors.textDark, fontWeight: 'bold' },
+  obraItem:        { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 14 },
+  obraItemActiva:  { backgroundColor: colors.primary + '11', borderRadius: 8, paddingHorizontal: 8 },
+  obraItemNombre:  { fontSize: 15, fontWeight: '600', color: colors.textPrimary },
+  obraItemSub:     { fontSize: 12, color: colors.textMuted, marginTop: 2 },
+  header:          { flexDirection: 'row', alignItems: 'center', marginTop: 12, marginBottom: 16 },
+  btnMenu:         { backgroundColor: colors.bgCard, padding: 10, borderRadius: 8, borderWidth: 1, borderColor: colors.border },
+  titulo:          { fontSize: 18, fontWeight: 'bold', color: colors.textPrimary },
+  subtitulo:       { fontSize: 12, color: colors.textSecondary, marginTop: 1 },
+  obraSelector:    { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.bgCard, borderRadius: 10, padding: 14, marginBottom: 20, borderWidth: 1, borderColor: colors.border, gap: 10 },
+  obraBar:         { width: 3, height: 36, borderRadius: 2, backgroundColor: colors.primary },
+  obraTitulo:      { fontSize: 10, color: colors.textMuted, letterSpacing: 1 },
+  obraNombre:      { fontSize: 15, fontWeight: '700', color: colors.textPrimary, marginTop: 2 },
+  ubicRow:         { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 3 },
+  ubicText:        { fontSize: 11, color: colors.textMuted },
+  seccion:         { flexDirection: 'row', alignItems: 'center', marginBottom: 12, gap: 8 },
+  seccionLabel:    { fontSize: 11, color: colors.textMuted, letterSpacing: 1, fontWeight: '600' },
+  linea:           { flex: 1, height: 1, backgroundColor: colors.bgContainer },
+  grid:            { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginBottom: 20 },
+  card:            { width: '47%', backgroundColor: colors.bgCard, borderRadius: 10, padding: 16, marginBottom: 12, alignItems: 'center', borderWidth: 1, borderColor: colors.border, elevation: 3 },
+  iconBox:         { width: 52, height: 52, borderRadius: 10, justifyContent: 'center', alignItems: 'center', marginBottom: 10, borderWidth: 1 },
+  cardLabel:       { fontSize: 13, color: colors.textSecondary, fontWeight: '500' },
+  acciones:        { flexDirection: 'row', gap: 10, marginBottom: 8 },
+  accionPrimary:   { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: colors.primary, borderRadius: 8, padding: 14, elevation: 5 },
+  accionSecondary: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: colors.bgCard, borderRadius: 8, padding: 14, borderWidth: 1, borderColor: colors.primary },
+  accionTextP:     { color: colors.textDark, fontWeight: 'bold', fontSize: 14 },
+  accionTextS:     { color: colors.primary, fontWeight: '600', fontSize: 14 },
 });

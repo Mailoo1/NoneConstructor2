@@ -1,113 +1,56 @@
-// src/screens/SplashScreen.js
-import { useEffect } from "react";
-import { View, Text, StyleSheet, Animated } from "react-native";
-import { colors } from "../config/theme";
+import { useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, Animated } from 'react-native';
+import { colors } from '../config/theme';
 
-export default function SplashScreen({ navigation }) {
-  const opacidad = new Animated.Value(0);
-  const escala = new Animated.Value(0.8);
+export default function SplashScreen({ onFinish }) {
+  const opacidad = useRef(new Animated.Value(0)).current;
+  const escala   = useRef(new Animated.Value(0.8)).current;
 
   useEffect(() => {
     Animated.parallel([
-      Animated.timing(opacidad, {
-        toValue: 1,
-        duration: 1000,
-        useNativeDriver: true,
-      }),
-      Animated.spring(escala, {
-        toValue: 1,
-        friction: 4,
-        useNativeDriver: true,
-      }),
+      Animated.timing(opacidad, { toValue: 1, duration: 900, useNativeDriver: true }),
+      Animated.spring(escala,   { toValue: 1, friction: 4,   useNativeDriver: true }),
     ]).start();
 
-    const timer = setTimeout(() => {}, 3000);
-    return () => clearTimeout(timer);
+    const t = setTimeout(onFinish, 2800);
+    return () => clearTimeout(t);
   }, []);
 
   return (
-    <View style={styles.container}>
-      <View style={styles.topAccent} />
-
-      <Animated.View
-        style={[styles.contenido, { opacity: opacidad, transform: [{ scale: escala }] }]}
-      >
-        <View style={styles.iconContainer}>
-          <Text style={styles.icono}>🏗️</Text>
+    <View style={s.container}>
+      <View style={s.topAccent} />
+      <Animated.View style={[s.contenido, { opacity: opacidad, transform: [{ scale: escala }] }]}>
+        <View style={s.iconBox}>
+          <Text style={s.icono}>🏗️</Text>
         </View>
-        <Text style={styles.titulo}>Mi Obra Digital</Text>
-        <View style={styles.divider} />
-        <Text style={styles.subtitulo}>
-          Gestión de proyectos de construcción
-        </Text>
+        <Text style={s.titulo}>Control Obra</Text>
+        <View style={s.divider} />
+        <Text style={s.subtitulo}>Gestión de proyectos de construcción</Text>
       </Animated.View>
-
-      <Animated.View style={[styles.footer, { opacity: opacidad }]}>
-        <View style={styles.puntos}>
-          <View style={[styles.punto, styles.puntoActivo]} />
-          <View style={styles.punto} />
-          <View style={styles.punto} />
+      <Animated.View style={[s.footer, { opacity: opacidad }]}>
+        <View style={s.puntos}>
+          <View style={[s.punto, s.puntoActivo]} />
+          <View style={s.punto} />
+          <View style={s.punto} />
         </View>
-        <Text style={styles.footerTexto}>Cargando...</Text>
+        <Text style={s.footerText}>Cargando...</Text>
       </Animated.View>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#1E1E1E',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  topAccent: {
-    position: 'absolute',
-    top: 0, left: 0, right: 0,
-    height: 4,
-    backgroundColor: '#F5A623',
-  },
-  contenido: { alignItems: 'center' },
-  iconContainer: {
-    width: 100,
-    height: 100,
-    borderRadius: 12,
-    backgroundColor: '#2A2A2A',
-    borderWidth: 1,
-    borderColor: '#F5A623',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  icono: { fontSize: 52 },
-  titulo: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    letterSpacing: 0.5,
-    marginBottom: 12,
-  },
-  divider: {
-    width: 48,
-    height: 3,
-    backgroundColor: '#F5A623',
-    borderRadius: 2,
-    marginBottom: 12,
-  },
-  subtitulo: {
-    fontSize: 14,
-    color: '#B0B0B0',
-    textAlign: 'center',
-    paddingHorizontal: 40,
-    letterSpacing: 0.3,
-  },
-  footer: { position: 'absolute', bottom: 60, alignItems: 'center' },
-  puntos: { flexDirection: 'row', marginBottom: 12 },
-  punto: {
-    width: 8, height: 8, borderRadius: 4,
-    backgroundColor: '#3A3A3A',
-    marginHorizontal: 4,
-  },
-  puntoActivo: { backgroundColor: '#F5A623', width: 24, borderRadius: 4 },
-  footerTexto: { color: '#808080', fontSize: 12, letterSpacing: 1, textTransform: 'uppercase' },
+const s = StyleSheet.create({
+  container:   { flex: 1, backgroundColor: colors.bgPrimary, justifyContent: 'center', alignItems: 'center' },
+  topAccent:   { position: 'absolute', top: 0, left: 0, right: 0, height: 4, backgroundColor: colors.primary },
+  contenido:   { alignItems: 'center' },
+  iconBox:     { width: 100, height: 100, borderRadius: 20, backgroundColor: colors.bgCard, borderWidth: 1, borderColor: colors.primary, justifyContent: 'center', alignItems: 'center', marginBottom: 24 },
+  icono:       { fontSize: 52 },
+  titulo:      { fontSize: 32, fontWeight: 'bold', color: colors.textPrimary, marginBottom: 12 },
+  divider:     { width: 48, height: 3, backgroundColor: colors.primary, borderRadius: 2, marginBottom: 12 },
+  subtitulo:   { fontSize: 14, color: colors.textSecondary, textAlign: 'center', paddingHorizontal: 40 },
+  footer:      { position: 'absolute', bottom: 60, alignItems: 'center' },
+  puntos:      { flexDirection: 'row', marginBottom: 12 },
+  punto:       { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.bgContainer, marginHorizontal: 4 },
+  puntoActivo: { backgroundColor: colors.primary, width: 24, borderRadius: 4 },
+  footerText:  { color: colors.textDisabled, fontSize: 12, letterSpacing: 1, textTransform: 'uppercase' },
 });

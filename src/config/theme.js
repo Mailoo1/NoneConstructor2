@@ -1,46 +1,21 @@
-// src/config/theme.js — Paleta "Noneconstructor"
-
 export const colors = {
-  // Base (fondos)
-  bgPrimary:   '#1E1E1E',  // Negro carbón — fondo principal
-  bgCard:      '#2A2A2A',  // Gris oscuro — cards / secciones
-  bgContainer: '#3A3A3A',  // Gris cemento — divisiones
-
-  // Superficie / UI
-  border:      '#4A4A4A',  // Bordes suaves / inputs
-  textMuted:   '#6B6B6B',  // Texto secundario / placeholders
-
-  // Color principal (identidad)
-  primary:     '#F5A623',  // Naranja obra ⭐
-
-  // Secundarios
-  warning:     '#FFC857',  // Amarillo suave — alertas leves
-  danger:      '#E4572E',  // Naranja rojizo — acciones importantes
-  info:        '#2E86AB',  // Azul acero — datos / contraste
-
-  // Estados
-  success:     '#4CAF50',  // Verde — completado
-  error:       '#FF3B30',  // Rojo — urgente
-  pending:     '#FF9500',  // Naranja — en proceso
-
-  // Texto
-  textPrimary:  '#FFFFFF',
-  textSecondary:'#B0B0B0',
-  textDisabled: '#808080',
+  bgPrimary:     '#1C1C1E',
+  bgCard:        '#2C2C2E',
+  bgContainer:   '#3A3A3C',
+  border:        '#48484A',
+  textMuted:     '#8E8E93',
+  primary:       '#D4A373',
+  warning:       '#FFD60A',
+  danger:        '#FF453A',
+  info:          '#0A84FF',
+  success:       '#30D158',
+  error:         '#FF453A',
+  pending:       '#FF9F0A',
+  textPrimary:   '#F2F2F7',
+  textSecondary: '#AEAEB2',
+  textDisabled:  '#636366',
+  bgLight:       '#F2F2F7',
+  textDark:      '#1C1C1E',
 };
 
-export const radius = {
-  sm: 8,
-  md: 12,
-  lg: 16,
-};
-
-export const elevation = {
-  card: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.4,
-    shadowRadius: 6,
-    elevation: 5,
-  },
-};
+export const radius = { sm: 8, md: 12, lg: 16 };
