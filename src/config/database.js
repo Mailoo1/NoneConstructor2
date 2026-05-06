@@ -3,6 +3,7 @@ import * as SQLite from 'expo-sqlite';
 const db = SQLite.openDatabaseSync('control_obra.db');
 
 export const inicializarDB = () => {
+
   db.execSync(`
     CREATE TABLE IF NOT EXISTS tareas_local (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -12,9 +13,22 @@ export const inicializarDB = () => {
       descripcion TEXT,
       prioridad TEXT DEFAULT 'media',
       estado TEXT DEFAULT 'pendiente',
+      evidencia TEXT,
       creado_en TEXT
     );
+  `);
 
+  // Agregar columna evidencia si no existe
+  try {
+    db.execSync(`
+      ALTER TABLE tareas_local
+      ADD COLUMN evidencia TEXT;
+    `);
+  } catch (e) {
+    console.log('La columna evidencia ya existe');
+  }
+
+  db.execSync(`
     CREATE TABLE IF NOT EXISTS materiales_local (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       firebase_id TEXT,
@@ -42,14 +56,30 @@ export const inicializarDB = () => {
   `);
 };
 
-// TAREAS
 export const guardarTareaLocal = (tarea) => {
   db.runSync(
     `INSERT OR REPLACE INTO tareas_local 
-     (firebase_id, uid, titulo, descripcion, prioridad, estado, creado_en)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    [tarea.id, tarea.uid, tarea.titulo, tarea.descripcion,
-     tarea.prioridad, tarea.estado, tarea.creadoEn]
+     (
+       firebase_id,
+       uid,
+       titulo,
+       descripcion,
+       prioridad,
+       estado,
+       creado_en,
+       evidencia
+     )
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      tarea.id,
+      tarea.uid,
+      tarea.titulo,
+      tarea.descripcion,
+      tarea.prioridad,
+      tarea.estado,
+      tarea.creadoEn,
+      tarea.evidencia || null
+    ]
   );
 };
 
@@ -59,10 +89,16 @@ export const obtenerTareasLocal = (uid) => {
   );
 };
 
-export const actualizarEstadoTareaLocal = (firebaseId, estado) => {
+export const actualizarEstadoTareaLocal = (
+  firebaseId,
+  estado,
+  evidencia = null
+) => {
   db.runSync(
-    'UPDATE tareas_local SET estado = ? WHERE firebase_id = ?',
-    [estado, firebaseId]
+    `UPDATE tareas_local
+     SET estado = ?, evidencia = ?
+     WHERE firebase_id = ?`,
+    [estado, evidencia, firebaseId]
   );
 };
 
