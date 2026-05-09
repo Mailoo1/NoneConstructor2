@@ -20,10 +20,7 @@ export const inicializarDB = () => {
 
   // Agregar columna evidencia si no existe
   try {
-    db.execSync(`
-      ALTER TABLE tareas_local
-      ADD COLUMN evidencia TEXT;
-    `);
+    db.execSync(`ALTER TABLE tareas_local ADD COLUMN evidencia TEXT;`);
   } catch (e) {
     console.log('La columna evidencia ya existe');
   }
@@ -50,36 +47,28 @@ export const inicializarDB = () => {
       nombre TEXT NOT NULL,
       cargo TEXT,
       telefono TEXT,
+      precio_dia REAL DEFAULT 0,
       estado TEXT DEFAULT 'activo',
       creado_en TEXT
     );
   `);
+
+  // Agregar columna precio_dia si no existe (para usuarios que ya tienen la DB vieja)
+  try {
+    db.execSync(`ALTER TABLE personal_local ADD COLUMN precio_dia REAL DEFAULT 0;`);
+  } catch (e) {
+    console.log('La columna precio_dia ya existe');
+  }
 };
 
+// ── TAREAS ────────────────────────────────────────────────────────────────────
 export const guardarTareaLocal = (tarea) => {
   db.runSync(
-    `INSERT OR REPLACE INTO tareas_local 
-     (
-       firebase_id,
-       uid,
-       titulo,
-       descripcion,
-       prioridad,
-       estado,
-       creado_en,
-       evidencia
-     )
+    `INSERT OR REPLACE INTO tareas_local
+     (firebase_id, uid, titulo, descripcion, prioridad, estado, creado_en, evidencia)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-    [
-      tarea.id,
-      tarea.uid,
-      tarea.titulo,
-      tarea.descripcion,
-      tarea.prioridad,
-      tarea.estado,
-      tarea.creadoEn,
-      tarea.evidencia || null
-    ]
+    [tarea.id, tarea.uid, tarea.titulo, tarea.descripcion,
+     tarea.prioridad, tarea.estado, tarea.creadoEn, tarea.evidencia || null]
   );
 };
 
@@ -89,26 +78,18 @@ export const obtenerTareasLocal = (uid) => {
   );
 };
 
-export const actualizarEstadoTareaLocal = (
-  firebaseId,
-  estado,
-  evidencia = null
-) => {
+export const actualizarEstadoTareaLocal = (firebaseId, estado, evidencia = null) => {
   db.runSync(
-    `UPDATE tareas_local
-     SET estado = ?, evidencia = ?
-     WHERE firebase_id = ?`,
+    `UPDATE tareas_local SET estado = ?, evidencia = ? WHERE firebase_id = ?`,
     [estado, evidencia, firebaseId]
   );
 };
 
 export const eliminarTareaLocal = (firebaseId) => {
-  db.runSync(
-    'DELETE FROM tareas_local WHERE firebase_id = ?', [firebaseId]
-  );
+  db.runSync('DELETE FROM tareas_local WHERE firebase_id = ?', [firebaseId]);
 };
 
-// MATERIALES
+// ── MATERIALES ────────────────────────────────────────────────────────────────
 export const guardarMaterialLocal = (material) => {
   db.runSync(
     `INSERT OR REPLACE INTO materiales_local
@@ -127,19 +108,17 @@ export const obtenerMaterialesLocal = (uid) => {
 };
 
 export const eliminarMaterialLocal = (firebaseId) => {
-  db.runSync(
-    'DELETE FROM materiales_local WHERE firebase_id = ?', [firebaseId]
-  );
+  db.runSync('DELETE FROM materiales_local WHERE firebase_id = ?', [firebaseId]);
 };
 
-// PERSONAL
+// ── PERSONAL ──────────────────────────────────────────────────────────────────
 export const guardarPersonalLocal = (persona) => {
   db.runSync(
     `INSERT OR REPLACE INTO personal_local
-     (firebase_id, uid, nombre, cargo, telefono, estado, creado_en)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+     (firebase_id, uid, nombre, cargo, telefono, precio_dia, estado, creado_en)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     [persona.id, persona.uid, persona.nombre, persona.cargo,
-     persona.telefono, persona.estado, persona.creadoEn]
+     persona.telefono, persona.precioDia ?? 0, persona.estado, persona.creadoEn]
   );
 };
 
@@ -150,9 +129,7 @@ export const obtenerPersonalLocal = (uid) => {
 };
 
 export const eliminarPersonalLocal = (firebaseId) => {
-  db.runSync(
-    'DELETE FROM personal_local WHERE firebase_id = ?', [firebaseId]
-  );
+  db.runSync('DELETE FROM personal_local WHERE firebase_id = ?', [firebaseId]);
 };
 
 export default db;
